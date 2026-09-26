@@ -1,0 +1,79 @@
+name: ondevice
+
+# Real hardware only. Namespaces, cgroups, overlayfs, netlink and nftables
+# cannot be asserted anywhere else, so a change that touches them is not done
+# until this workflow is green on a Pi.
+#
+# The runner must be a Pi with the engine unit installed, reachable over SSH as
+# the deploy user, and labelled `r3s-device`. Serial console or physical access
+# is the recovery path: this suite can wedge a node, and a wedged node in CI is
+# an outage the operator has to walk to.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'crates/r3s-runtime/**'
+      - 'crates/r3s-net/**'
+      - 'crates/r3s-store/**'
+      - 'scripts/**'
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: soak duration
+        default: 30m
+
+concurrency:
+  # One device, one run: a soak and a namespace test on the same node measure
+  # each other, not the engine.
+  group: r3s-device
+  cancel-in-progress: false
+
+jobs:
+  ondevice:
+    name: on-device suite
+    runs-on: [self-hosted, linux, arm64, r3s-device]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt,clippy
+          rustup default 1.98.0
+          rustup target add aarch64-unknown-linux-gnu
+
+      - name: build for this device
+        run: ./scripts/build.sh --target aarch64-unknown-linux-gnu --release
+
+      - name: install
+        run: sudo ./scripts/deploy.sh localhost
+
+      - name: kernel and capability matrix
+        run: sudo ./scripts/ondevice.sh
+
+      - name: benchmarks
+        run: sudo ./scripts/bench-ondevice.sh
+
+      - name: soak
+        run: sudo R3S_REPEAT=1 ./scripts/soak.sh --duration "${{ github.event.inputs.duration || '30m' }}"
+
+      - name: collect reports
+        if: always()
+        run: sudo cp -r target/reports /tmp/r3s-reports || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ondevice-reports
+          path: /tmp/r3s-reports
+
+      - name: device health after the suite
+        if: always()
+        run: |
+          # A failed kernel test can leave the node unusable. Report rather than
+          # hide: the next step depends on whether the device came back.
+          systemctl is-active r3s.service || true
+          uptime
+          dmesg --level=err,crit,alert,emerg | tail -50 || true

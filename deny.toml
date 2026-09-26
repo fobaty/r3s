@@ -1,0 +1,70 @@
+# cargo-deny policy. Run with `cargo deny check`; CI fails the build on a diff.
+#
+# One idea behind every section: this binary ships to a node with no package
+# manager, so a dependency is either a permissive crate somebody on this team
+# read, or it is a problem. There is no "review it later" tier — the allow-list
+# is the review.
+
+[graph]
+# Check the same graph CI builds, including the feature combinations that only
+# exist on the device targets.
+all-features = true
+
+[licenses]
+# An allow-list is a deny-list here: anything not named is refused, including
+# crates with no detectable licence. Every entry is a licence that is actually
+# used by something in the graph, because an allowance nobody matches is noise
+# that hides a real change. Adding one is a review decision, and a new entry
+# with no crate behind it is a sign the list is being written by wishful
+# thinking rather than by `cargo deny check licenses`.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Unicode-3.0",
+]
+# Below 0.9 cargo-deny stops being sure what a licence *is*, and a wrong guess
+# here is a licence violation nobody notices.
+confidence-threshold = 0.9
+exceptions = []
+
+[licenses.private]
+# No unpublished crate, ever: the node has no registry to fetch from.
+ignore = false
+registries = []
+
+[bans]
+# Two versions of one crate means one of them was chosen by accident, and a
+# `cargo update` can flip between them silently.
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+# Not a `deny`: `--no-default-features` on a transitive dep is a real tool, and
+# the next dozen dependencies are ours to pin explicitly.
+workspace-default-features = "warn"
+external-default-features = "allow"
+deny = []
+allow = []
+allow-workspace = false
+skip = []
+skip-tree = []
+
+[sources]
+# Every dependency comes from crates.io and is pinned by Cargo.lock. A git
+# dependency is a dependency nobody can audit from this tree.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[sources.allow-org]
+github = []
+gitlab = []
+bitbucket = []
+
+[advisories]
+# No advisory anywhere in the graph, dev and build dependencies included: a
+# vulnerable build-only crate is still a crate on a maintainer's laptop.
+unmaintained = "all"
+unsound = "all"
+yanked = "deny"
+ignore = []

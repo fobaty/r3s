@@ -1,0 +1,19 @@
+[package]
+name = "r3s-store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Transactional state store: intent WAL, mmap snapshot, telemetry ring"
+
+[dependencies]
+r3s-proto.workspace = true
+rkyv.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+memmap2.workspace = true
+nix = { workspace = true, features = ["fs", "time"] }
+
+[dev-dependencies]
+tempfile.workspace = true

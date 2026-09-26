@@ -1,0 +1,26 @@
+{
+  "crates": [
+    {
+      "crate": "r3s-proto",
+      "unsafety": {
+        "forbids_unsafe": true,
+        "unsafe_exprs": 0,
+        "unsafe_functions": 0,
+        "unsafe_item_impls": 0,
+        "unsafe_methods": 0,
+        "unsafe_traits": 0
+      }
+    },
+    {
+      "crate": "r3s-store",
+      "unsafety": {
+        "forbids_unsafe": false,
+        "unsafe_exprs": 28,
+        "unsafe_functions": 0,
+        "unsafe_item_impls": 4,
+        "unsafe_methods": 1,
+        "unsafe_traits": 0
+      }
+    }
+  ]
+}

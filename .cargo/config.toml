@@ -1,0 +1,24 @@
+# Cross-compilation and runner aliases.
+#
+# The build host is aarch64 (Pi) or x86_64 (dev box). Nothing here forces a
+# target by default, so `cargo build` on a Mac still works for the portable
+# crates; only the on-device scripts set R3S_TARGET explicitly.
+#
+# Per-board tuning is *not* expressed as custom target triples: a custom target
+# needs a full target JSON (including a linker), and a hand-written one drifts
+# from the toolchain. `scripts/build.sh` passes `-C target-cpu=...` per board
+# instead, so the only machine-specific input is one flag on one command line.
+
+[alias]
+t = "nextest run"
+tc = "nextest run --no-fail-fast"
+b = "bench --workspace --no-fail-fast"
+ci = "clippy --workspace --all-targets --all-features -- -D warnings"
+
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+rustflags = ["-C", "link-arg=-Wl,-z,now"]
+
+[target.aarch64-unknown-linux-musl]
+linker = "aarch64-linux-musl-gcc"
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-arg=-Wl,-z,now"]

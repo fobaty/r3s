@@ -1,0 +1,100 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  # Anything the toolchain warns about is an error here, docs included: a
+  # public API without usable docs is a defect in a crate others depend on.
+  RUSTDOCFLAGS: -D warnings
+  RUSTFLAGS: -D warnings
+
+jobs:
+  check:
+    name: fmt, clippy, tests, docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt,clippy,rust-src
+          rustup default 1.98.0
+          cargo install --locked cargo-nextest cargo-deny cargo-geiger
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: tests
+        run: cargo nextest run --workspace --no-fail-fast
+
+      - name: doc
+        run: cargo doc --no-deps --workspace
+
+      - name: licenses and advisories
+        run: cargo deny check
+
+      # A growing unsafe surface is the thing this project is most able to
+      # regress on silently, so it is diffed against a committed baseline
+      # rather than eyeballed. The script reduces geiger's dependency tree to
+      # the workspace crates, so a dependency bump does not read as a change.
+      - name: unsafe surface has not grown
+        run: |
+          ./ci/unsafe-surface.sh > target/unsafe-surface.json
+          diff -u ci/unsafe-baseline.json target/unsafe-surface.json \
+            || { echo "the unsafe surface changed; update ci/unsafe-baseline.json only with a docs/UNSAFE.md entry"; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unsafe-surface
+          path: target/unsafe-surface.json
+
+  cross:
+    name: cross-compile ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [aarch64-unknown-linux-gnu, aarch64-unknown-linux-musl]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal
+          rustup default 1.98.0
+          rustup target add ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      # `check`, not `build`: the linker is not installed here, and the point is
+      # that the Linux-specific code compiles for the device's architecture.
+      - name: check
+        run: cargo check --workspace --target ${{ matrix.target }} --all-targets
+
+  scripts:
+    name: operator scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal
+          rustup default 1.98.0
+      - name: shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          shellcheck -x scripts/*.sh ci/*.sh
+      - name: scripts fail loudly, not silently
+        run: |
+          for s in scripts/*.sh; do
+            bash -n "$s" || exit 1
+          done

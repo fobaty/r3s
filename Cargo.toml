@@ -1,0 +1,88 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/r3s-proto",
+    "crates/r3s-store",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "Apache-2.0 OR MIT"
+description = "Bare-metal-grade container and data orchestration engine for ARM64 single-board computers"
+
+[workspace.dependencies]
+# internal
+r3s-proto = { path = "crates/r3s-proto", version = "0.1.0" }
+r3s-store = { path = "crates/r3s-store", version = "0.1.0" }
+r3s-runtime = { path = "crates/r3s-runtime", version = "0.1.0" }
+r3s-net = { path = "crates/r3s-net", version = "0.1.0" }
+r3s-image = { path = "crates/r3s-image", version = "0.1.0" }
+r3s-engine = { path = "crates/r3s-engine", version = "0.1.0" }
+r3s-cli = { path = "crates/r3s-cli", version = "0.1.0" }
+r3s-sshd = { path = "crates/r3s-sshd", version = "0.1.0" }
+
+# errors
+thiserror = "2.0.21"
+anyhow = "1.0.104"
+
+# observability
+tracing = "0.1.44"
+
+# serialization
+rkyv = "0.8.18"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.151"
+bincode = { version = "3.0", features = ["serde", "std"] }
+toml = "1.1.6"
+hex = "0.4.3"
+sha2 = "0.11"
+
+# storage
+memmap2 = "0.9.11"
+
+# async
+tokio = { version = "1.53.1", default-features = false }
+tokio-util = { version = "0.7", default-features = false }
+futures = "0.3.34"
+async-trait = "0.1"
+
+# linux
+libc = "0.2"
+nix = { version = "0.31.3", default-features = false }
+rustix = { version = "1.1.5", default-features = false, features = ["fs", "process", "term", "pipe", "pty", "prctl", "signal"] }
+
+# ssh
+# russh re-exports its key handling as `russh::keys`; a separate russh-keys
+# dependency would only risk picking up a version russh was not built against.
+russh = "0.63.3"
+
+# test
+tempfile = "3"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "unwind"
+strip = "symbols"
+debug = 1
+incremental = false
+
+[profile.release.package."*"]
+opt-level = 3
+
+# The container init and the client CLI abort on panic: a half-initialised
+# container namespace is worse than a dead container.
+[profile.init]
+inherits = "release"
+panic = "abort"
+strip = true
+debug = false
+
+[profile.cli]
+inherits = "release"
+panic = "abort"
+strip = true
+debug = false
