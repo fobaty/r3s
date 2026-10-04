@@ -11,7 +11,7 @@ A bare-metal-grade container + data orchestration engine for ARM64 single-board 
 | Rule | Enforcement |
 |---|---|
 | Rust **1.98+**, `edition = "2024"`, workspace `resolver = "3"` | CI `cargo +1.98.0 check` |
-| `unsafe` **only** in `r3s-store`, `r3s-runtime`, `r3s-net`; every other crate has `#![forbid(unsafe_code)]` | `cargo geiger` vs. committed baseline |
+| `unsafe` **only** in `r3s-store`, `r3s-runtime`, `r3s-net`; every other crate has `#![forbid(unsafe_code)]` | `ci/unsafe-surface.sh` vs. committed `ci/unsafe-baseline.json` |
 | Every `unsafe` block links a justification entry in [`docs/UNSAFE.md`](docs/UNSAFE.md) | reviewer + geiger diff |
 | No new dependency without an ADR in [`docs/ADRs/`](docs/ADRs/) | review |
 | Single writer to the state store, ever | `Store` API has no `&mut self` outside the reconciler |
@@ -28,8 +28,9 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo nextest run                      # unit + host-safe integration
 cargo doc --no-deps --workspace        # warnings are errors in CI
-cargo deny check                       # licenses + bans
-cargo geiger --invert                  # unsafe surface must not grow
+cargo deny check                       # licenses + bans + sources
+./ci/unsafe-surface.sh > /tmp/u.json && diff -u ci/unsafe-baseline.json /tmp/u.json   # unsafe surface must not grow
+shellcheck -x scripts/*.sh ci/*.sh     # pin 0.11.0 locally; CI does not trust the distro package
 
 # device
 ./scripts/build.sh --board pi5 --target aarch64-unknown-linux-gnu --release

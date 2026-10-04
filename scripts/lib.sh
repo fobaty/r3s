@@ -28,7 +28,7 @@ need() {
 # The board's core, or empty on a non-ARM64 host. The only machine-specific
 # input to a build is this one flag (see .cargo/config.toml).
 board_cpu() {
-  local info="${1:-/proc/cpuinfo}"
+  local info="/proc/cpuinfo"
   [[ -r "$info" ]] || return 0
   awk -F: '/^model name|^Hardware|^Processor/ {gsub(/^ +/, "", $2); print tolower($2); exit}' "$info" 2>/dev/null
 }
