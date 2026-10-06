@@ -1,0 +1,17 @@
+[package]
+name = "r3s-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Kernel plane: cgroup v2 tree, scope lifecycle, preflight, OOM detection"
+
+[dependencies]
+r3s-proto.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+nix = { workspace = true, features = ["fs", "mount", "process", "user"] }
+libc.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

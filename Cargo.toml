@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "crates/r3s-proto",
+    "crates/r3s-runtime",
     "crates/r3s-store",
 ]
 

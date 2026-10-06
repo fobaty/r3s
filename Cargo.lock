@@ -319,6 +319,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "r3s-runtime"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "nix",
+ "r3s-proto",
+ "tempfile",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "r3s-store"
 version = "0.1.0"
 dependencies = [
