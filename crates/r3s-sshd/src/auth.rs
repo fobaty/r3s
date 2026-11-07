@@ -2,6 +2,7 @@
 //! brute-force LRU protection.
 
 use std::collections::VecDeque;
+use std::num::NonZeroUsize;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
@@ -18,6 +19,7 @@ struct AuthAttempt {
 }
 
 /// Brute-force protection using an LRU cache with exponential backoff.
+#[derive(Clone)]
 pub struct BruteForceProtector {
     max_entries: usize,
     attempts: Arc<Mutex<lru::LruCache<String, AuthAttempt>>>,
@@ -29,7 +31,7 @@ impl BruteForceProtector {
     pub fn new(max_entries: usize, min_backoff: Duration, max_backoff: Duration) -> Self {
         Self {
             max_entries,
-            attempts: Arc::new(Mutex::new(lru::LruCache::new(max_entries))),
+            attempts: Arc::new(Mutex::new(lru::LruCache::new(NonZeroUsize::new(max_entries).unwrap()))),
             min_backoff,
             max_backoff,
         }
@@ -46,20 +48,22 @@ impl BruteForceProtector {
             }
         });
 
-        let entry = cache.get_mut(username).or_else(|| {
+        let mut entry = cache.get_mut(username);
+        if entry.is_none() {
             cache.put(username.to_string(), AuthAttempt {
                 timestamp: now,
                 failed_count: 0,
-            })
-        });
+            });
+            entry = cache.get_mut(username);
+        }
 
         match entry {
             Some(e) => {
                 if e.failed_count >= 5 {
-                    let backoff = (self.min_backoff.as_millis() as u64 * 2_u64.pow(e.failed_count))
-                        .min(self.max_backoff.as_millis() as u64)
-                        .as_millis() as u64;
-                    return Err(Duration::from_millis(backoff));
+                    let backoff_ms = (self.min_backoff.as_millis() as u64 * 2_u64.pow(e.failed_count))
+                        .min(self.max_backoff.as_millis() as u64);
+                    let backoff = Duration::from_millis(backoff_ms);
+                    return Err(backoff);
                 }
                 Ok(())
             }
@@ -84,34 +88,16 @@ impl BruteForceProtector {
 /// Authorized keys file with stat-based caching.
 pub struct AuthorizedKeysFile {
     path: PathBuf,
-    cache: Arc<Mutex<(Option<Instant>, Vec<String>)>>,
 }
 
 impl AuthorizedKeysFile {
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self {
             path: path.into(),
-            cache: Arc::new(Mutex::new((None, Vec::new()))),
         }
     }
 
     pub fn load(&self) -> Result<Vec<String>, std::io::Error> {
-        let mut cache = self.cache.lock().unwrap();
-        let metadata = match self.path.metadata() {
-            Ok(m) => m,
-            Err(e) => return Err(e),
-        };
-
-        let modified = metadata.modified().ok();
-
-        if let Some(last_modified) = &cache.0 {
-            if let Some(current_modified) = modified {
-                if last_modified == &current_modified {
-                    return Ok(cache.1.clone());
-                }
-            }
-        }
-
         let file = File::open(&self.path)?;
         let reader = BufReader::new(file);
         let lines: Vec<String> = reader
@@ -119,9 +105,6 @@ impl AuthorizedKeysFile {
             .filter_map(|line| line.ok())
             .filter(|line| !line.trim().is_empty() && !line.starts_with('#'))
             .collect();
-
-        cache.0 = modified;
-        cache.1 = lines;
 
         Ok(lines)
     }
@@ -167,8 +150,9 @@ pub fn authenticate(
     protector: &BruteForceProtector,
 ) -> Result<(), anyhow::Error> {
     if let Err(backoff) = protector.check(username) {
-        warn!(username, backoff_ms = backoff.as_millis(), "brute-force protection triggered");
-        return Err(anyhow::anyhow!("too many failed attempts, try again in {}ms", backoff.as_millis()));
+        let backoff_ms = backoff.as_millis();
+        warn!(username, backoff_ms, "brute-force protection triggered");
+        return Err(anyhow::anyhow!("too many failed attempts, try again in {}ms", backoff_ms));
     }
 
     match authorized_keys.verify_key(username, public_key) {

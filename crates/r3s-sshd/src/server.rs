@@ -2,6 +2,7 @@
 
 use russh::server::{Handler, Auth};
 use russh::keys::PublicKey;
+use russh::{Channel, ChannelId};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -50,7 +51,7 @@ impl Sshd {
 
         let handler = AuthHandler {
             authorized_keys: Arc::new(AuthorizedKeysFile::new(&self.authorized_keys_path)),
-            protector: Arc::clone(&self.brute_force_protector),
+            protector: Arc::new(self.brute_force_protector.clone()),
         };
 
         // Start the server
@@ -125,7 +126,7 @@ impl Handler for AuthHandler {
     // Minimal channel handling - just accept session channels
     async fn channel_open_session(
         &mut self,
-        _channel: russh::server::Channel<russh::server::Msg>,
+        _channel: Channel<russh::server::Msg>,
         _reply: russh::server::ChannelOpenHandle,
         _session: &mut russh::server::Session,
     ) -> Result<(), Self::Error> {
@@ -135,7 +136,7 @@ impl Handler for AuthHandler {
 
     async fn exec_request(
         &mut self,
-        _channel: russh::server::ChannelId,
+        _channel: ChannelId,
         _command: &[u8],
         _session: &mut russh::server::Session,
     ) -> Result<(), Self::Error> {
@@ -144,7 +145,7 @@ impl Handler for AuthHandler {
 
     async fn subsystem_request(
         &mut self,
-        _channel: russh::server::ChannelId,
+        _channel: ChannelId,
         _subsystem: &str,
         _session: &mut russh::server::Session,
     ) -> Result<(), Self::Error> {
