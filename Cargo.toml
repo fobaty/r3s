@@ -4,6 +4,11 @@ members = [
     "crates/r3s-proto",
     "crates/r3s-runtime",
     "crates/r3s-store",
+    "crates/r3s-engine",
+    "crates/r3s-bin",
+    "crates/r3s-sshd",
+    "crates/r3s-cli",
+    "crates/r3s-net",
 ]
 
 [workspace.package]
@@ -30,6 +35,11 @@ anyhow = "1.0.104"
 
 # observability
 tracing = "0.1.44"
+tracing-subscriber = "0.3.20"
+
+# utilities
+lru = "0.13.0"
+base64 = "0.22.1"
 
 # serialization
 rkyv = "0.8.18"

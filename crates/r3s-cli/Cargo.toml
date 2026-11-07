@@ -1,0 +1,30 @@
+[package]
+name = "r3s-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Custom CLI for r3s container orchestration engine"
+
+[[bin]]
+name = "r3s"
+path = "src/main.rs"
+
+[dependencies]
+r3s-proto = { path = "../r3s-proto" }
+r3s-store = { path = "../r3s-store" }
+r3s-engine = { path = "../r3s-engine" }
+
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tokio = { workspace = true, features = ["sync", "rt"] }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# CLI parsing - hand-written, no external parser crates for v1
+# We use simple string splitting and manual argument parsing
+
+[dev-dependencies]
+tempfile = { workspace = true }

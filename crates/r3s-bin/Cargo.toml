@@ -1,0 +1,23 @@
+[package]
+name = "r3s-bin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Binary entry point for the r3s container orchestration engine"
+
+[[bin]]
+name = "r3sd"
+path = "src/main.rs"
+
+[dependencies]
+r3s-proto = { path = "../r3s-proto" }
+r3s-store = { path = "../r3s-store" }
+r3s-runtime = { path = "../r3s-runtime" }
+r3s-engine = { path = "../r3s-engine" }
+
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+anyhow = { workspace = true }

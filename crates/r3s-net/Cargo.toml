@@ -1,0 +1,21 @@
+[package]
+name = "r3s-net"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Network orchestration: netlink, nftables, namespace management"
+
+[dependencies]
+r3s-proto = { path = "../r3s-proto" }
+r3s-store = { path = "../r3s-store" }
+
+nix = { workspace = true, features = ["net", "socket", "process"] }
+tracing = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros"] }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+libc = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

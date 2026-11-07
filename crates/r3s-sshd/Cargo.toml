@@ -1,0 +1,24 @@
+[package]
+name = "r3s-sshd"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Embedded SSH server for r3s management plane"
+
+[dependencies]
+r3s-proto = { path = "../r3s-proto" }
+r3s-store = { path = "../r3s-store" }
+r3s-engine = { path = "../r3s-engine" }
+
+russh = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true, features = ["sync", "rt", "macros"] }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+lru = { workspace = true }
+base64 = { workspace = true }
+
+
+[dev-dependencies]
+tempfile = { workspace = true }

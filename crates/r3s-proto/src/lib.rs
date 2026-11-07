@@ -22,6 +22,7 @@ pub mod crc32c;
 pub mod digest;
 pub mod error;
 pub mod id;
+pub mod runtime;
 pub mod state;
 pub mod types;
 
@@ -30,6 +31,10 @@ pub use crc32c::{Crc32c, crc32c};
 pub use digest::{Digest, DigestError, Hasher};
 pub use error::{Error, ImageError, NetworkError, Resource, Result, RuntimeError, StoreError};
 pub use id::{ContainerId, IdParseError, ImageId, ImageRef, ImageRefError, ResolveError};
+pub use runtime::{
+    Capability, ChildSetup, ChildSetupError, NamespaceFlags, Rlimit, RlimitResource, SeccompAction,
+    SeccompProfile,
+};
 pub use state::{
     ContainerState, ExitRecord, HealthReport, MetricSample, Phase, RestartPolicy, StateSnapshot,
 };
